@@ -34,7 +34,7 @@ instance GameResultEval GameStatus where
 
 main :: IO ()
 main =
-    do result <- try (readFile "../../words.txt") :: IO (Either SomeException String)
+    do result <- try (readFile "words.txt") :: IO (Either SomeException String)
        case result of
          Left ex -> putStrLn $ "Caught exception: " ++ show ex
          Right content -> startGame $ lines content
@@ -63,31 +63,27 @@ loopGame =
        let nt = t - 1
 
        lift $ putStrLn $ "<< Left attempts " ++ show t ++ " -- " ++ show (toList pw) ++ " >>"
-       guess <- lift $ gameInput currentStatus
+       guess <- lift gameInput
 
-       let updatedStatus | length guess > 1    = ThrowableSt { tries = nt, hiddenWord = hw, playerWord = fromList guess }
-                         | letter `notElem` pw = UpdatableSt { tries = nt, hiddenWord = hw, playerWord = newPlayerWord }
-                         | otherwise           = InvalidSt
-            where letter = head guess
-                  newPlayerWord = foldl (\acc index -> update index letter acc) pw (letter `elemIndicesL` hw)
+       let newStatus  | length guess > 1    = ThrowableSt { tries = nt, hiddenWord = hw, playerWord = fromList guess }
+                      | letter `notElem` pw = UpdatableSt { tries = nt, hiddenWord = hw, playerWord = newPlayerWord }
+                      | otherwise           = InvalidSt
+                      where letter = head guess
+                            newPlayerWord = foldl (\acc index -> update index letter acc) pw (letter `elemIndicesL` hw)
 
-       case eval updatedStatus of
-         Won      -> return $ "You won!!! :) The word is: " ++ show (toList hw)
+       case eval newStatus of
+         Continue -> put newStatus >> loopGame
+         Discard  -> put currentStatus { tries = nt} >> loopGame
+         Repeat   -> lift (putStrLn "You already have guessed this letter") >> loopGame
          Lost     -> return $ "Sorry you have lost :( The word is: " ++ show (toList hw)
-         Repeat   -> do lift $ putStrLn "You already have guessed this letter"
-                        loopGame
-         Discard  -> do put currentStatus { tries = nt}
-                        loopGame
-         Continue -> do put updatedStatus
-                        loopGame
+         Won      -> return $ "You won!!! :) The word is: " ++ show (toList hw)
 
-
-gameInput :: GameStatus -> IO String
-gameInput status =
-    do putStr "Insert a new letter or enter full word >>> "
-       input <- getLine
-       if not (null input) && all isAlpha input
-         then return input
-       else
-         do putStrLn "The input cannot be empty and only letters are accepted"
-            gameInput status
+       where
+         gameInput :: IO String
+         gameInput =
+             do putStr "Insert a new letter or enter full word >>> "
+                getLine >>= parse
+                  where
+                    parse input
+                      | not (null input) && all isAlpha input = return input
+                      | otherwise = putStrLn "The input cannot be empty and only letters are accepted" >> gameInput

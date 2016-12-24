@@ -34,7 +34,7 @@ instance GameResultEval GameStatus where
 
 main :: IO ()
 main =
-    do result <- try (readFile "words.txt") :: IO (Either SomeException String)
+    do result <- try (readFile "../../words.txt") :: IO (Either SomeException String)
        case result of
          Left ex -> putStrLn $ "Caught exception: " ++ show ex
          Right content -> startGame $ lines content
@@ -57,19 +57,26 @@ initNewGame word = UpdatableSt (calcNumberTries word) (createGuessBox word) (fro
 loopGame :: StateT GameStatus IO String
 loopGame =
     do currentStatus <- get
-       lift $ putStrLn $ "<< Left attempts " ++ show (tries currentStatus) ++ " -- " ++ show (toList (playerWord currentStatus)) ++ " >>"
+       let pw = playerWord currentStatus
+       let hw = hiddenWord currentStatus
+       let t = tries currentStatus
+       let nt = t - 1
+
+       lift $ putStrLn $ "<< Left attempts " ++ show t ++ " -- " ++ show (toList pw) ++ " >>"
        guess <- lift $ gameInput currentStatus
 
-       let updatedStatus | length guess > 1                           = ThrowableSt { tries = tries currentStatus - 1, playerWord = fromList guess, hiddenWord = hiddenWord currentStatus }
-                         | head guess `elem` playerWord currentStatus = InvalidSt
-                         | otherwise                                  = newStatus currentStatus (head guess)
+       let updatedStatus | length guess > 1    = ThrowableSt { tries = nt, hiddenWord = hw, playerWord = fromList guess }
+                         | letter `notElem` pw = UpdatableSt { tries = nt, hiddenWord = hw, playerWord = newPlayerWord }
+                         | otherwise           = InvalidSt
+            where letter = head guess
+                  newPlayerWord = foldl (\acc index -> update index letter acc) pw (letter `elemIndicesL` hw)
 
        case eval updatedStatus of
-         Won      -> return $ "You won!!! :) The word is: " ++ show (toList (hiddenWord updatedStatus))
-         Lost     -> return $ "Sorry you have lost :( The word is: " ++ show (toList (hiddenWord updatedStatus))
+         Won      -> return $ "You won!!! :) The word is: " ++ show (toList hw)
+         Lost     -> return $ "Sorry you have lost :( The word is: " ++ show (toList hw)
          Repeat   -> do lift $ putStrLn "You already have guessed this letter"
                         loopGame
-         Discard  -> do put currentStatus { tries = tries currentStatus - 1}
+         Discard  -> do put currentStatus { tries = nt}
                         loopGame
          Continue -> do put updatedStatus
                         loopGame
@@ -84,15 +91,3 @@ gameInput status =
        else
          do putStrLn "The input cannot be empty and only letters are accepted"
             gameInput status
-
-
-newStatus :: GameStatus -> Char -> GameStatus
-newStatus currentStatus guessedLetter =
-    do let hw = hiddenWord currentStatus
-       let pw = playerWord currentStatus
-       let nt = tries currentStatus - 1
-       let ids = guessedLetter `elemIndicesL` hw
-       case ids of
-         (_:_) -> let updateWord = foldl (\acc index -> update index guessedLetter acc) pw ids
-                   in UpdatableSt { tries = nt, playerWord = updateWord, hiddenWord = hw }
-         _      -> UpdatableSt { tries = nt, playerWord = pw, hiddenWord = hw  }

@@ -3,13 +3,10 @@ module Main where
 import Control.Exception
 import Control.Monad.State
 import Data.Char
-import Data.Either
 import Data.Foldable (toList)
 import Data.List
 import Data.Sequence (fromList, elemIndicesL, update, Seq)
 import System.Random
-
-import Lib
 
 type SeqString = Seq Char
 
@@ -22,14 +19,14 @@ class GameResultEval a where
     eval :: a -> GameResult
 
 instance GameResultEval GameStatus where
-    eval (UpdatableSt tries playerWord hiddenWord)
-        | playerWord == hiddenWord = Won
-        | tries == 0 = Lost
+    eval (UpdatableSt t pw hw)
+        | pw == hw = Won
+        | t == 0 = Lost
         | otherwise = Continue
 
-    eval (ThrowableSt tries playerWord hiddenWord)
-        | playerWord == hiddenWord = Won
-        | tries == 0 = Lost
+    eval (ThrowableSt t pw hw)
+        | pw == hw = Won
+        | t == 0 = Lost
         | otherwise = Discard
 
     eval InvalidSt = Repeat
@@ -44,17 +41,17 @@ main =
 
 
 startGame :: [String] -> IO ()
-startGame words = pickRandomWord words >>= \word -> runStateT loopGame (initNewGame word) >>= putStrLn . fst
+startGame allWords = pickRandomWord allWords >>= \word -> runStateT loopGame (initNewGame word) >>= putStrLn . fst
 
 
 pickRandomWord :: [String] -> IO String
-pickRandomWord words = newStdGen >>= \r -> return $ words !! fst (randomR (0, length words - 1) r)
+pickRandomWord allWords = newStdGen >>= \r -> return $ allWords !! fst (randomR (0, length allWords - 1) r)
 
 
 initNewGame :: String -> GameStatus
 initNewGame word = UpdatableSt (calcNumberTries word) (createGuessBox word) (fromList word)
-                   where calcNumberTries word = 2 * length (nub word)
-                         createGuessBox word = fromList $ [1..(length word)] *> "."
+                   where calcNumberTries w = 2 * length (nub w)
+                         createGuessBox w = fromList $ [1..(length w)] *> "."
 
 
 loopGame :: StateT GameStatus IO String
@@ -96,6 +93,6 @@ newStatus currentStatus guessedLetter =
        let nt = tries currentStatus - 1
        let ids = guessedLetter `elemIndicesL` hw
        case ids of
-         (x:xs) -> let updateWord = foldl (\acc id -> update id guessedLetter acc) pw ids
+         (_:_) -> let updateWord = foldl (\acc index -> update index guessedLetter acc) pw ids
                    in UpdatableSt { tries = nt, playerWord = updateWord, hiddenWord = hw }
          _      -> UpdatableSt { tries = nt, playerWord = pw, hiddenWord = hw  }

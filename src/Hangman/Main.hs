@@ -6,27 +6,7 @@ import Data.Char
 import Data.List
 import System.Random
 
-data GameResult = Continue | Discard | Lost | Repeat | Won
-data GameStatus = InvalidSt
-                  | ThrowableSt { tries :: Int, playerWord :: String, hiddenWord :: String }
-                  | UpdatableSt { tries :: Int, playerWord :: String, hiddenWord :: String }
-
-class GameResultEval a where
-    eval :: a -> GameResult
-
-instance GameResultEval GameStatus where
-    eval (UpdatableSt t pw hw)
-        | pw == hw = Won
-        | t == 0 = Lost
-        | otherwise = Continue
-
-    eval (ThrowableSt t pw hw)
-        | pw == hw = Won
-        | t == 0 = Lost
-        | otherwise = Discard
-
-    eval InvalidSt = Repeat
-
+data GameStatus = GameStatus { tries :: Int, playerWord :: String, hiddenWord :: String }
 
 main :: IO ()
 main =
@@ -45,37 +25,27 @@ pickRandomWord allWords = newStdGen >>= \r -> return $ allWords !! fst (randomR 
 
 
 initNewGame :: String -> GameStatus
-initNewGame word = UpdatableSt { tries = 2 * length (nub word)
-                                 , playerWord = [1..(length word)] *> "."
-                                 , hiddenWord = word
-                               }
+initNewGame word = GameStatus { tries = 2 * length (nub word), playerWord = [1..(length word)] *> "." , hiddenWord = word }
 
 
 loopGame :: StateT GameStatus IO String
 loopGame =
     do currentStatus <- get
-       let pw = playerWord currentStatus
-       let hw = hiddenWord currentStatus
-       let t = tries currentStatus
-       let nt = t - 1
-
-       lift $ putStrLn $ "<< Left attempts " ++ show t ++ " -- " ++ show pw ++ " >>"
-       guess <- lift gameInput
-
-       let newStatus  | length guess > 1    = ThrowableSt { tries = nt, hiddenWord = hw, playerWord = guess }
-                      | letter `notElem` pw = UpdatableSt { tries = nt, hiddenWord = hw, playerWord = newPlayerWord }
-                      | otherwise           = InvalidSt
-                      where letter = head guess
-                            newPlayerWord = foldr (\w acc -> (if snd w == letter then letter else fst w):acc) [] (pw `zip` hw)
-
-       case eval newStatus of
-         Continue -> put newStatus >> loopGame
-         Discard  -> put currentStatus { tries = nt} >> loopGame
-         Repeat   -> lift (putStrLn "You already have guessed this letter") >> loopGame
-         Lost     -> return $ "Sorry you have lost :( The word is: " ++ show hw
-         Won      -> return $ "You won!!! :) The word is: " ++ show hw
-
+       case currentStatus of
+         GameStatus t pw hw
+           | pw == hw  -> return $ "You won!!! :) The word is: " ++ show hw
+           | t == 0    -> return $ "Sorry you have lost :( The word is: " ++ show hw
+           | otherwise -> do lift $ putStrLn $ "<< Left attempts " ++ show t ++ " -- " ++ show pw ++ " >>"
+                             guess <- lift gameInput
+                             if length guess == 1 then
+                               if head guess `elem` pw then lift (putStrLn "You already have guessed this letter")
+                               else put (currentStatus { tries = t - 1, playerWord = guessedWord pw hw (head guess) })
+                             else put (currentStatus { tries = t - 1 })
+                             loopGame
        where
+         guessedWord :: String -> String -> Char -> String
+         guessedWord pw hw letter = foldr (\w acc -> (if snd w == letter then letter else fst w):acc) [] (pw `zip` hw)
+
          gameInput :: IO String
          gameInput =
              do putStr "Insert a new letter or enter full word >>> "

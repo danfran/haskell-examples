@@ -49,9 +49,10 @@ pickRandomWord allWords = newStdGen >>= \r -> return $ allWords !! fst (randomR 
 
 
 initNewGame :: String -> GameStatus
-initNewGame word = UpdatableSt (calcNumberTries word) (createGuessBox word) (fromList word)
-                   where calcNumberTries w = 2 * length (nub w)
-                         createGuessBox w = fromList $ [1..(length w)] *> "."
+initNewGame word = UpdatableSt { tries = 2 * length (nub word)
+                                 , playerWord = fromList $ [1..(length word)] *> "."
+                                 , hiddenWord = fromList word
+                               }
 
 
 loopGame :: StateT GameStatus IO String

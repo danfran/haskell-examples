@@ -43,21 +43,24 @@ main = do
 
           prepend x = arr (x ++)
           append  x = arr (++ x)
---           join = arr(\x -> fst head x)
---           join2 = arr(\x -> fst x)
---           join3 = arr(\x -> head x)
 
-          xf1 =  (prepend "<") <+> (append ">")
-          xf2 =  (prepend "<") >>> (append ">")  <+>  (prepend "{") >>> (append "}")
-          xf3 = ((prepend "<") >>> (append ">")) <+> ((prepend "{") >>> (append "}"))
---           xf4 = ( ((prepend "<") >>> (append ">")) <+> ((prepend "{") >>> (append "}")) ) >>> join3
+          aSumFive = arr (+5)
+          aMulTwo = arr (*2)
 
-          -- Expected type: Kleisli [] [Char] [Char]
-          -- Actual type: Kleisli [] ([Char], [Char]) ([Char], [Char])
+          xf1 =  (append "1") <+> (append "2")
+          xf2 =  (append "1") >>> (append "2")  <+>  (append "3") >>> (append "4")
+          xf3 = ((append "1") >>> (append "2")) <+> ((append "3") >>> (append "4"))
 
         mapM_ (\xform -> print (["foobar"] >>= runKleisli xform) >> putStrLn "--------------")
               [ xf1
-                , xf2
-                , xf3
---                 , xf4
+              , xf2
+              , xf3
               ]
+
+        print ( returnA 5 )
+        print ( aSumFive $ 5 )
+        print ( first aSumFive (5, 2) )
+        print ( second aSumFive (5, 2) )
+        print ( aSumFive >>> aMulTwo $ 2)
+        print ( aSumFive *** aMulTwo $ (5, 2) )
+        print ( aSumFive &&& aMulTwo $ 3 )

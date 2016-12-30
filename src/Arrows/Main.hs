@@ -46,6 +46,7 @@ main = do
 
           aSumFive = arr (+5)
           aMulTwo = arr (*2)
+--           merger = arr( uncurry (*) )
 
           xf1 =  (append "1") <+> (append "2")
           xf2 =  (append "1") >>> (append "2")  <+>  (append "3") >>> (append "4")
@@ -63,4 +64,4 @@ main = do
         print ( second aSumFive (5, 2) )
         print ( aSumFive >>> aMulTwo $ 2)
         print ( aSumFive *** aMulTwo $ (5, 2) )
-        print ( aSumFive &&& aMulTwo $ 3 )
+        print ( aSumFive &&& aMulTwo >>> uncurry (*) $ 3 )

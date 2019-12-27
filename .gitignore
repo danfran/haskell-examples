@@ -7,3 +7,4 @@ dist/
 x86_64-osx-ghc-*
 add-source-timestamps
 packages/
+*.lock

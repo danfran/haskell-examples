@@ -1,5 +1,9 @@
 # Haskell Examples
 
+## Build with Stack and run single example
+
+Use `stack build` or for the single instance run ie. `stack build --exec Arrows`.
+
 ## Arrows
 
 A few simple examples applying arrows to functions and combining them using:

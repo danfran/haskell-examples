@@ -5,7 +5,7 @@ name:                haskell-examples
 version:             0.1.0.0
 synopsis:            Haskell examples.
 description:         Code snippets used for blogging too.
-license:             PublicDomain
+license:             BSD3
 license-file:        LICENSE
 author:              danfran
 maintainer:          dfrancesconi12@gmail.com
@@ -29,7 +29,7 @@ Executable XkcdDownloader
           , old-locale
           , random
           , transformers-base
-          , reactive-banana ==1.1.0.1
+          , reactive-banana ==1.2.1.0
   hs-source-dirs:   src/XkcdDownloader
   default-language: Haskell2010
   ghc-options:      -Wall -O2

@@ -29,7 +29,7 @@ trendsUrl woeid = "https://api.twitter.com/1.1/trends/place.json?id=" ++ woeid
 
 getTrends :: OAuth -> Credential -> String -> IO (Either String [Trends])
 getTrends appOauth appCred url = do
-    request <- parseUrl url
+    request <- parseUrlThrow url
     signedRequest <- signOAuth appOauth appCred request
     manager <- newManager tlsManagerSettings
     result <- httpLbs signedRequest manager

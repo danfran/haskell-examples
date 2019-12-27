@@ -6,7 +6,7 @@ import Data.Char (toLower)
 import Data.Map hiding (unions)
 import Data.Maybe (fromJust)
 import Prelude hiding (lookup)
-import Reactive.Banana
+import Reactive.Banana hiding (First, Last)
 import Reactive.Banana.Frameworks
 import System.Random
 
